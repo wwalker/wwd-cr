@@ -1,11 +1,11 @@
+                <a href="{{url}}">
             <td style="overflow:hidden;max-width:150px;max-height:150px;">
               <div class="button">
-                <a href="{{url}}">
-                  {%- if image != "" -%}
-                    <img src="/images/{{image}}" alt="{{label}}" width="{{image_width}}px" height="{{image_height}}px" />
-                  {% else %}
+                  {%- if image == "" -%}
                     <font size="75">{{label}}</font>
+                  {% else %}
+                    <img src="/images/{{image}}" alt="{{label}}" width="{{image_width}}px" height="{{image_height}}px" />
                   {%- endif -%}
-                </a>
               </div>
             </td>
+                </a>
