@@ -109,7 +109,7 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
         page_num = $1.to_i
         STDERR.puts "I should execute something for #{key}\n\n"
         cmd = config_lines[key].command
-        cmd =~ /^(.+?)\s+(.*)/
+        cmd =~ /^(.+?)\s+(.+)/
         type = $1
         data = $2
         STDERR.puts "type: #{type}\n\n"
@@ -117,7 +117,8 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
 
         case type
         when "keys"
-          Process.new("xdotool", ["key", data])
+          File.write("temp.ahk", "Send " + data)
+          Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["temp.ahk"])
           context.response.status = HTTP::Status::FOUND
           context.response.headers["Location"] = "/page/#{page_num}"
         when "cmd"
