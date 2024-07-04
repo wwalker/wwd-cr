@@ -96,8 +96,9 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
         case cl.action
         when "shortcut"
           # Process.new(cl.args,nil,nil,false,true)
-          File.write("shortcut.bat", "cmd /c " + cl.args)
-          Process.new("shortcut.bat")
+          # File.write("shortcut.bat", "cmd /c " + cl.args)
+          # Process.new("shortcut.bato")
+          Process.new("cmd", ["/c", cl.args])
           context.response.status = HTTP::Status::FOUND
           context.response.headers["Location"] = "/page/#{page_num}"
         when "keys"
