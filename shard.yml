@@ -1,0 +1,28 @@
+name: webdeck
+version: 0.1.0
+
+dependencies:
+  crinja:
+    github: straight-shoota/crinja
+    version: ~> 0.8.1
+
+targets:
+  wwd-server:
+    main: src/wwd.cr
+  
+  # authors:
+#   - name <email@example.com>
+
+# description: |
+#   Short description of webdeck
+
+# dependencies:
+#   pg:
+#     github: will/crystal-pg
+#     version: "~> 0.5"
+
+# development_dependencies:
+#   webmock:
+#     github: manastech/webmock.cr
+
+# license: MIT

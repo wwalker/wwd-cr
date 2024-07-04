@@ -1,0 +1,6 @@
+version: 2.0
+shards:
+  crinja:
+    git: https://github.com/straight-shoota/crinja.git
+    version: 0.8.1
+
