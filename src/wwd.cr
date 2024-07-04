@@ -88,30 +88,26 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
         key = $1
         key =~ /^(\d+)-/
         page_num = $1.to_i
+        cl = config_lines[key]
         STDERR.puts "I should execute something for #{key}\n\n"
-        cmd = config_lines[key].action
-        cmd =~ /^(.+?)\s+(.+)/
-        type = $1
-        data = $2
-        STDERR.puts "type: #{type}\n\n"
-        STDERR.puts "data: #{data}\n\n"
+        STDERR.puts "action: #{cl.action}\n\n"
+        STDERR.puts "args: <#{cl.args}>\n\n"
 
-        case type
+        case cl.action
         when "keys"
-          File.write("temp.ahk", "Send " + data)
-          Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["temp.ahk", data])
+          File.write("oneshot.ahk", "Send " + cl.args)
+          Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
           context.response.status = HTTP::Status::FOUND
           context.response.headers["Location"] = "/page/#{page_num}"
         when "cmd"
-          args = data.split(/\s+/)
-          STDERR.puts "args: <#{args.join("|")}>\n\n"
+          args = cl.args.split("|")
           command = args.shift
           Process.new(command, args)
           context.response.status = HTTP::Status::FOUND
           context.response.headers["Location"] = "/page/#{page_num}"
         else
           context.response.status = HTTP::Status::BAD_REQUEST
-          context.response.print "Unknown command type #{type}!\n\n"
+          context.response.print "Unknown command type #{cl.action}!\n\n"
         end
       else
         context.response.status = HTTP::Status::BAD_REQUEST
