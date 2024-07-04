@@ -1,42 +1,21 @@
 require "http/server"
 require "crinja"
 
-# class RenderPage
-#   @page : Int32
-#   @title : String
-#   @rows : Int32
-#   @columns : Int32
-#   @config_lines : Array(ConfigLine)
-#   @width : Int32
-#   @height : Int32
-#
-#   property html : String
-#
-#   def initialize(@page, @title, @rows, @columns, file, @width, @height)
-#
-#     env = Crinja.new
-#     env.loader = Crinja::Loader::FileSystemLoader.new("templates/")
-#     template = env.get_template("deck.html.j2")
-#     @html = template.render({page: @page, title: @title, rows: @rows, columns: @columns, w: @width, h: @height, config_lines: @config_lines})
-#   end
-# end
-
 class ConfigLine
   getter key : String
   getter label : String
   getter url : String
   getter action : String
-  getter? image : Bool
+  getter image : String
   getter args : String
 
   def initialize(line)
     values = line.split("|", 5)
     @key = values[0]
-    @label = values[1]
-    @image = (values[2] =~ /^(yes|y|true|t)$/i) ? true : false
+    @image = values[1]
+    @label = values[2]
     @action = values[3]
-    @args = values[5]
-    # @image = (values[3] =~ /.*\.(jpg|jpeg|png|gif|svg|webp|tif|tiff)$/) ? true : false
+    @args = values[4]
     case @action
     when /^\s*page\s+(\d+)$/
       @url = "/page/#{$1}"
@@ -79,7 +58,7 @@ def render_page(page, title, rows, columns, config_lines)
     (1..columns).each do |column|
       key = "#{page}-#{row}-#{column}"
       c = config_lines[key]
-      context = {key: key, label: c.label, action: c.action, w: w, h: h, image: c.image?, image_width: image_width, image_height: image_height, url: c.url}
+      context = {key: key, label: c.label, action: c.action, w: w, h: h, image: c.image, image_width: image_width, image_height: image_height, url: c.url}
       row_content += renderer.render("td_html.j2", context)
     end
     row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
