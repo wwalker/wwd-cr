@@ -103,8 +103,8 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
           context.response.headers["Location"] = "/page/#{page_num}"
         when "keys"
           File.write("oneshot.ahk", "Send " + cl.args)
-          # Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
-          Process.new("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe", ["oneshot.ahk"])
+          Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
+          # Process.new("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe", ["oneshot.ahk"])
           context.response.status = HTTP::Status::FOUND
           context.response.headers["Location"] = "/page/#{page_num}"
         when "cmd"
