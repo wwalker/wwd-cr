@@ -117,8 +117,8 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
 
         case type
         when "keys"
-          File.write("temp.ahk", "Send " + data)
-          Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["temp.ahk"])
+          # File.write("temp.ahk", "Send " + data)
+          Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["asdf.ahk", data])
           context.response.status = HTTP::Status::FOUND
           context.response.headers["Location"] = "/page/#{page_num}"
         when "cmd"
