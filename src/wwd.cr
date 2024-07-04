@@ -127,7 +127,7 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
     end
   end
 
-  address = server.bind_tcp(8080)
+  address = server.bind_tcp "0.0.0.0", 8080
   puts "Listening on http://#{address}"
 
   # This call blocks until the process is terminated
