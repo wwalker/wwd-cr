@@ -24,18 +24,20 @@ require "crinja"
 class ConfigLine
   getter key : String
   getter label : String
-  getter command : String
   getter url : String
+  getter action : String
   getter? image : Bool
+  getter args : String
 
   def initialize(line)
-    values = line.split(" : ")
+    values = line.split("|", 5)
     @key = values[0]
     @label = values[1]
-    @command = values[2]
+    @image = (values[2] =~ /^(yes|y|true|t)$/i) ? true : false
+    @action = values[3]
+    @args = values[5]
     # @image = (values[3] =~ /.*\.(jpg|jpeg|png|gif|svg|webp|tif|tiff)$/) ? true : false
-    @image = (values[3] =~ /^(yes|y|true|t)$/i) ? true : false
-    case @command
+    case @action
     when /^\s*page\s+(\d+)$/
       @url = "/page/#{$1}"
     else
@@ -77,7 +79,7 @@ def render_page(page, title, rows, columns, config_lines)
     (1..columns).each do |column|
       key = "#{page}-#{row}-#{column}"
       c = config_lines[key]
-      context = {key: key, label: c.label, command: c.command, w: w, h: h, image: c.image?, image_width: image_width, image_height: image_height, url: c.url}
+      context = {key: key, label: c.label, action: c.action, w: w, h: h, image: c.image?, image_width: image_width, image_height: image_height, url: c.url}
       row_content += renderer.render("td_html.j2", context)
     end
     row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
@@ -108,7 +110,7 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
         key =~ /^(\d+)-/
         page_num = $1.to_i
         STDERR.puts "I should execute something for #{key}\n\n"
-        cmd = config_lines[key].command
+        cmd = config_lines[key].action
         cmd =~ /^(.+?)\s+(.+)/
         type = $1
         data = $2
