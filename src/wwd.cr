@@ -17,8 +17,8 @@ class ConfigLine
     @action = values[3]
     @args = values[4]
     case @action
-    when /^\s*page\s+(\d+)$/
-      @url = "/page/#{$1}"
+    when "page"
+      @url = "/page/#{@args}"
     else
       @url = "/pressed/#{@key}"
     end
