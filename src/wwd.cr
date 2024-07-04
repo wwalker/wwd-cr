@@ -122,6 +122,7 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
           context.response.headers["Location"] = "/page/#{page_num}"
         when "cmd"
           args = data.split(/\s+/)
+          STDERR.puts "args: <#{args.join("|")}>\n\n"
           command = args.shift
           Process.new(command, args)
           context.response.status = HTTP::Status::FOUND
