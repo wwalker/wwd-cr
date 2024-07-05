@@ -75,6 +75,10 @@ def run_server(port : Int32, config_file : String, rows : Int32, columns : Int32
     when "GET"
       context.response.status = HTTP::Status::OK
       case context.request.path
+      when "", "/"
+         context.response.print INDEX_HTML
+      when "/start.html"
+         context.response.print START_HTML
       when /^\/re-read-config$/
         config_lines = read_config(config_file)
         context.response.print "Config re-read\n\n"
@@ -143,4 +147,6 @@ def main
   run_server(8080, file, rows, columns)
 end
 
+INDEX_HTML = {{ read_file("#{__DIR__}/../files/index.html") }}
+START_HTML = {{ read_file("#{__DIR__}/../files/start.html") }}
 main()

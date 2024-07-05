@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <title> WDWD </title>
+        <script type="text/javascript">
+            if (window.location !== window.parent.location) {
+                console.log("La page est chargée dans un iframe.");
+                var goFullscreen = window.parent.goFullscreenIFRAME;
+            } else {
+                console.log("La page n'est pas chargée dans un iframe.");
+                function goFullscreen() {
+                    var element = document.documentElement; // L'élément à mettre en mode plein écran
+                    if (element.requestFullscreen) {
+                        element.requestFullscreen();
+                    } else if (element.webkitRequestFullscreen) { /* Safari */
+                        element.webkitRequestFullscreen();
+                    } else if (element.msRequestFullscreen) { /* IE11 */
+                        element.msRequestFullscreen();
+                    }
+                    element.delete();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <button onclick="goFullscreen()">Go Fullscreen</button>
+        <iframe width="100%" height="100%" src="/page/1">
+        </iframe>
+    </body>
+</html>
