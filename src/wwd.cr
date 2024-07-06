@@ -149,4 +149,5 @@ end
 
 INDEX_HTML = {{ read_file("#{__DIR__}/../files/index.html") }}
 START_HTML = {{ read_file("#{__DIR__}/../files/start.html") }}
+STDERR.puts "Running on Crystal #{Crystal::VERSION} #{Crystal::HOST_TRIPLE}\n\n"
 main()
