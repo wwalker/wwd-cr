@@ -44,34 +44,57 @@ def read_config(file)
 end
 
 class WDWD
+  @rows : Int32
+  @columns : Int32
+  @config_file : String
+  @config_lines : Hash(String, ConfigLine)
+  @os : String
+
   def initialize(@rows, @columns, @config_file)
     @config_lines = read_config(@config_file)
-    @os = self.set_os
+    @os = os
   end # initialize
 
-def render_page(page, title)
-  w = ((100 - 1*(@rows + 1))/@rows).to_i
-  h = ((100 - 1*(@columns + 1))/@columns).to_i
-  tr_height = "150px"
-  image_width = "135px"
-  image_height = "135px"
-
-  renderer = Renderer.new
-
-  row_text = ""
-  (1..@rows).each do |row|
-    row_content = ""
-    (1..@columns).each do |column|
-      key = "#{page}-#{row}-#{column}"
-      c = config_lines[key]
-      context = {key: key, label: c.label, action: c.action, w: w, h: h, image: c.image, image_width: image_width, image_height: image_height, url: c.url}
-      row_content += renderer.render("td_html.j2", context)
+  def os
+    case Crystal::HOST_TRIPLE
+    when /windows/
+      STDERR.puts "Running on Windows\n\n"
+      "windows"
+    when /linux/
+      STDERR.puts "Running on Linux\n\n"
+      "linux"
+    when /darwin/
+      STDERR.puts "Running on macOS\n\n"
+      "macos"
+    else
+      STDERR.puts "Unknown host triple #{Crystal::HOST_TRIPLE}"
+      exit 2 # Unknown OS
     end
-    row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
-  end
+  end # os
 
-  renderer.render("deck_html.j2", {page: page, title: title, table_content: row_text, table_width: "1200px"})
-end
+  def render_page(page, title)
+    w = ((100 - 1*(@rows + 1))/@rows).to_i
+    h = ((100 - 1*(@columns + 1))/@columns).to_i
+    tr_height = "150px"
+    image_width = "135px"
+    image_height = "135px"
+
+    renderer = Renderer.new
+
+    row_text = ""
+    (1..@rows).each do |row|
+      row_content = ""
+      (1..@columns).each do |column|
+        key = "#{page}-#{row}-#{column}"
+        c = @config_lines[key]
+        context = {key: key, label: c.label, action: c.action, w: w, h: h, image: c.image, image_width: image_width, image_height: image_height, url: c.url}
+        row_content += renderer.render("td_html.j2", context)
+      end
+      row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
+    end
+
+    renderer.render("deck_html.j2", {page: page, title: title, table_content: row_text, table_width: "1200px"})
+  end
 
   def run_server(port : Int32)
     config_lines = read_config(@config_file)
@@ -86,7 +109,7 @@ end
         when "/start.html"
           context.response.print START_HTML
         when /^\/re-read-config$/
-          config_lines = read_config(config_file)
+          @config_lines = read_config(@config_file)
           context.response.print "Config re-read\n\n"
         when /^\/page\/(\d+)$/
           page = $1.to_i
@@ -162,20 +185,5 @@ end
 INDEX_HTML = {{ read_file("#{__DIR__}/../files/index.html") }}
 START_HTML = {{ read_file("#{__DIR__}/../files/start.html") }}
 STDERR.puts "Running on Crystal #{Crystal::VERSION} #{Crystal::HOST_TRIPLE}\n\n"
-
-case Crystal::HOST_TRIPLE
-when /windows/
-  STDERR.puts "Running on Windows\n\n"
-  @os = "windows"
-when /linux/
-  STDERR.puts "Running on Linux\n\n"
-  @os = "linux"
-when /darwin/
-  STDERR.puts "Running on macOS\n\n"
-  @os = "macos"
-else
-  STDERR.puts "Unknown host triple #{Crystal::HOST_TRIPLE}"
-  exit 2 # Unknown OS
-end
 
 main()
