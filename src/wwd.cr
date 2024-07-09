@@ -21,26 +21,20 @@ class ConfigLine
       @url = "/page/#{@args}"
     else
       @url = "/pressed/#{@key}"
-    end
-  end
+    end # case
+  end   # initialize
 end
 
 class Renderer
   def initialize
     @env = Crinja.new
     @env.loader = Crinja::Loader::FileSystemLoader.new("templates/")
-  end
+  end # initialize
 
   def render(template, context)
     template = @env.get_template(template)
     template.render(context)
-  end
-end
-
-def read_config(file)
-  config_lines = {} of String => ConfigLine
-  File.read_lines(file).each { |line| cl = ConfigLine.new(line); config_lines[cl.key] = cl }
-  config_lines
+  end # render
 end
 
 class WDWD
@@ -72,7 +66,39 @@ class WDWD
     end
   end # os
 
+  def read_config(file)
+    config_lines = Hash(String, ConfigLine).new
+    lines = File.read_lines(file)
+    STDERR.puts "Reading config from #{file}\n\n"
+    STDERR.puts "Lines: #{lines}\n\n"
+    noncomments = lines.reject { |l| l =~ /^#/ }
+    STDERR.puts "Noncomments: #{noncomments}\n\n"
+      noncomments.each { |line| STDERR.puts line; cl = ConfigLine.new(line); config_lines[cl.key] = cl; STDERR.puts cl }
+    # config_lines.nil? ? raise "No config lines found in #{file}" : config_lines
+    config_lines
+  end # read_config
+
+  def button_config(page, row, column) : ConfigLine
+    key = "#{page}-#{row}-#{column}"
+    default_key = "0-#{row}-#{column}"
+
+    bc = @config_lines[key]?
+    if ! bc.nil?
+      return bc
+    else
+      bc = @config_lines[default_key]?
+    end
+    if ! bc.nil?
+      return bc
+    else
+      # TODO actually use the "0-0-0" config, if it  exists
+      bc = ConfigLine.new("#{key}||#{key}|undefined|undefined")
+    end
+    bc.nil? ? raise "No default button config found for #{key}" : bc
+  end
+
   def render_page(page, title)
+    # TODO replace with "magic javascript" to auto size everything
     w = ((100 - 1*(@rows + 1))/@rows).to_i
     h = ((100 - 1*(@columns + 1))/@columns).to_i
     tr_height = "150px"
@@ -86,8 +112,10 @@ class WDWD
       row_content = ""
       (1..@columns).each do |column|
         key = "#{page}-#{row}-#{column}"
-        c = @config_lines[key]
-        context = {key: key, label: c.label, action: c.action, w: w, h: h, image: c.image, image_width: image_width, image_height: image_height, url: c.url}
+        bc = button_config(page, row, column)
+        context = {key: key, w: w, h: h,
+                     image_width: image_width, image_height: image_height,
+                     label: bc.label, action: bc.action, image: bc.image, url: bc.url}
         row_content += renderer.render("td_html.j2", context)
       end
       row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
@@ -97,7 +125,7 @@ class WDWD
   end
 
   def run_server(port : Int32)
-    config_lines = read_config(@config_file)
+    @config_lines = read_config(@config_file)
 
     server = HTTP::Server.new do |context|
       case context.request.method
@@ -117,35 +145,37 @@ class WDWD
           context.response.print render_page(page, "Page: #{page}")
         when /^\/images\/(.*)$/
           context.response.print File.read("images/#{$1}")
-        when /^\/pressed\/(\d+-\d+-\d+)$/
-          key = $1
-          key =~ /^(\d+)-/
-          page_num = $1.to_i
-          cl = config_lines[key]
+        when /^\/pressed\/(\d+)-(\d+)-(\d+)$/
+          page = $1
+          row = $2
+          column = $3
+          key = "#{page}-#{row}-#{column}"
+          cl = button_config(page, row, column)
           STDERR.puts "I should execute something for #{key}\n\n"
           STDERR.puts "action: #{cl.action}\n\n"
           STDERR.puts "args: <#{cl.args}>\n\n"
 
           case cl.action
+          when "undefined"
+            # TODO generate a popup pointing out the key is undefined
+            context.response.status = HTTP::Status::FOUND
+            context.response.headers["Location"] = "/page/#{page}"
           when "shortcut"
-            # Process.new(cl.args,nil,nil,false,true)
-            # File.write("shortcut.bat", "cmd /c " + cl.args)
-            # Process.new("shortcut.bato")
             Process.new("cmd", ["/c", cl.args])
             context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page_num}"
+            context.response.headers["Location"] = "/page/#{page}"
           when "keys"
             File.write("oneshot.ahk", "Send " + cl.args)
             Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
             # Process.new("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe", ["oneshot.ahk"])
             context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page_num}"
+            context.response.headers["Location"] = "/page/#{page}"
           when "cmd"
             args = cl.args.split("|")
             command = args.shift
             Process.new(command, args)
             context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page_num}"
+            context.response.headers["Location"] = "/page/#{page}"
           else
             context.response.status = HTTP::Status::BAD_REQUEST
             context.response.print "Unknown command type #{cl.action}!\n\n"
