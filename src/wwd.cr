@@ -73,7 +73,7 @@ class WDWD
     STDERR.puts "Lines: #{lines}\n\n"
     noncomments = lines.reject { |l| l =~ /^#/ }
     STDERR.puts "Noncomments: #{noncomments}\n\n"
-      noncomments.each { |line| STDERR.puts line; cl = ConfigLine.new(line); config_lines[cl.key] = cl; STDERR.puts cl }
+    noncomments.each { |line| STDERR.puts line; cl = ConfigLine.new(line); config_lines[cl.key] = cl; STDERR.puts cl }
     # config_lines.nil? ? raise "No config lines found in #{file}" : config_lines
     config_lines
   end # read_config
@@ -83,12 +83,12 @@ class WDWD
     default_key = "0-#{row}-#{column}"
 
     bc = @config_lines[key]?
-    if ! bc.nil?
+    if !bc.nil?
       return bc
     else
       bc = @config_lines[default_key]?
     end
-    if ! bc.nil?
+    if !bc.nil?
       return bc
     else
       # TODO actually use the "0-0-0" config, if it  exists
@@ -114,8 +114,8 @@ class WDWD
         key = "#{page}-#{row}-#{column}"
         bc = button_config(page, row, column)
         context = {key: key, w: w, h: h,
-                     image_width: image_width, image_height: image_height,
-                     label: bc.label, action: bc.action, image: bc.image, url: bc.url}
+                   image_width: image_width, image_height: image_height,
+                   label: bc.label, action: bc.action, image: bc.image, url: bc.url}
         row_content += renderer.render("td_html.j2", context)
       end
       row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
@@ -123,6 +123,43 @@ class WDWD
 
     renderer.render("deck_html.j2", {page: page, title: title, table_content: row_text, table_width: "1200px"})
   end
+
+  def handle_button_press(page, row, column)
+    page = $1
+    row = $2
+    column = $3
+    key = "#{page}-#{row}-#{column}"
+    cl = button_config(page, row, column)
+    STDERR.puts "I should execute something for #{key}\n\n"
+    STDERR.puts "action: #{cl.action}\n\n"
+    STDERR.puts "args: <#{cl.args}>\n\n"
+
+    case cl.action
+    when "undefined"
+      # TODO generate a popup pointing out the key is undefined
+      context.response.status = HTTP::Status::FOUND
+      context.response.headers["Location"] = "/page/#{page}"
+    when "shortcut"
+      Process.new("cmd", ["/c", cl.args])
+      context.response.status = HTTP::Status::FOUND
+      context.response.headers["Location"] = "/page/#{page}"
+    when "keys"
+      File.write("oneshot.ahk", "Send " + cl.args)
+      Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
+      # Process.new("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe", ["oneshot.ahk"])
+      context.response.status = HTTP::Status::FOUND
+      context.response.headers["Location"] = "/page/#{page}"
+    when "cmd"
+      args = cl.args.split("|")
+      command = args.shift
+      Process.new(command, args)
+      context.response.status = HTTP::Status::FOUND
+      context.response.headers["Location"] = "/page/#{page}"
+    else
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print "Unknown command type #{cl.action}!\n\n"
+    end # case
+  end   # handle_button_press
 
   def run_server(port : Int32)
     @config_lines = read_config(@config_file)
@@ -146,40 +183,7 @@ class WDWD
         when /^\/images\/(.*)$/
           context.response.print File.read("images/#{$1}")
         when /^\/pressed\/(\d+)-(\d+)-(\d+)$/
-          page = $1
-          row = $2
-          column = $3
-          key = "#{page}-#{row}-#{column}"
-          cl = button_config(page, row, column)
-          STDERR.puts "I should execute something for #{key}\n\n"
-          STDERR.puts "action: #{cl.action}\n\n"
-          STDERR.puts "args: <#{cl.args}>\n\n"
-
-          case cl.action
-          when "undefined"
-            # TODO generate a popup pointing out the key is undefined
-            context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page}"
-          when "shortcut"
-            Process.new("cmd", ["/c", cl.args])
-            context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page}"
-          when "keys"
-            File.write("oneshot.ahk", "Send " + cl.args)
-            Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
-            # Process.new("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe", ["oneshot.ahk"])
-            context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page}"
-          when "cmd"
-            args = cl.args.split("|")
-            command = args.shift
-            Process.new(command, args)
-            context.response.status = HTTP::Status::FOUND
-            context.response.headers["Location"] = "/page/#{page}"
-          else
-            context.response.status = HTTP::Status::BAD_REQUEST
-            context.response.print "Unknown command type #{cl.action}!\n\n"
-          end
+          handle_button_press($1, $2, $3)
         else
           context.response.status = HTTP::Status::BAD_REQUEST
           context.response.print "Request path is invalid #{context.request.path}!\n\n"
