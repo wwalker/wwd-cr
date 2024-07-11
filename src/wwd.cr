@@ -73,7 +73,7 @@ class WDWD
     STDERR.puts "Lines: #{lines}\n\n"
     noncomments = lines.reject { |l| l =~ /^#/ }
     STDERR.puts "Noncomments: #{noncomments}\n\n"
-    noncomments.each { |line| STDERR.puts line; cl = ConfigLine.new(line); config_lines[cl.key] = cl; STDERR.puts cl }
+    noncomments.each { |line| cl = ConfigLine.new(line); config_lines[cl.key] = cl }
     # config_lines.nil? ? raise "No config lines found in #{file}" : config_lines
     config_lines
   end # read_config
@@ -124,7 +124,7 @@ class WDWD
     renderer.render("deck_html.j2", {page: page, title: title, table_content: row_text, table_width: "1200px"})
   end
 
-  def handle_button_press(page, row, column)
+  def handle_button_press(page, row, column, context)
     page = $1
     row = $2
     column = $3
@@ -183,7 +183,7 @@ class WDWD
         when /^\/images\/(.*)$/
           context.response.print File.read("images/#{$1}")
         when /^\/pressed\/(\d+)-(\d+)-(\d+)$/
-          handle_button_press($1, $2, $3)
+          handle_button_press($1, $2, $3, context)
         else
           context.response.status = HTTP::Status::BAD_REQUEST
           context.response.print "Request path is invalid #{context.request.path}!\n\n"
