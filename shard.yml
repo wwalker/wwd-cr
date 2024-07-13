@@ -5,6 +5,8 @@ dependencies:
   crinja:
     github: straight-shoota/crinja
     version: ~> 0.8.1
+  qr-code:
+    github: spider-gazelle/qr-code
 
 targets:
   wwd-server:
