@@ -23,7 +23,7 @@ class ConfigLine
       @url = "/pressed/#{@key}"
     end # case
   end   # initialize
-end
+end     # class ConfigLine
 
 class Renderer
   def initialize
@@ -42,9 +42,10 @@ class WDWD
   @columns : Int32
   @config_file : String
   @config_lines : Hash(String, ConfigLine)
-  @os : String
+  getter port : Int32
+  getter os : String
 
-  def initialize(@rows, @columns, @config_file)
+  def initialize(@rows, @columns, @config_file, @port = 5657)
     @config_lines = read_config(@config_file)
     @os = os
   end # initialize
@@ -122,12 +123,9 @@ class WDWD
     end
 
     renderer.render("deck_html.j2", {page: page, title: title, table_content: row_text, table_width: "1200px"})
-  end
+  end # render_page
 
   def handle_button_press(page, row, column, context)
-    page = $1
-    row = $2
-    column = $3
     key = "#{page}-#{row}-#{column}"
     cl = button_config(page, row, column)
     STDERR.puts "I should execute something for #{key}\n\n"
@@ -135,6 +133,12 @@ class WDWD
     STDERR.puts "args: <#{cl.args}>\n\n"
 
     case cl.action
+    when "die-die-die"
+      STDERR.puts "Exiting, as requested by /die-die-die\n\n"
+    when "re-read-config"
+      @config_lines = read_config(@config_file)
+      context.response.status = HTTP::Status::FOUND
+      context.response.headers["Location"] = "/page/#{page}"
     when "undefined"
       # TODO generate a popup pointing out the key is undefined
       context.response.status = HTTP::Status::FOUND
@@ -180,6 +184,9 @@ class WDWD
           page = $1.to_i
           STDERR.puts "rendering page #{$1}\n\n"
           context.response.print render_page(page, "Page: #{page}")
+        when /^\/qr\/(.*)$/
+          context.response.print qr_page($1)
+          context.response.status = HTTP::Status::OK
         when /^\/images\/(.*)$/
           context.response.print File.read("images/#{$1}")
         when /^\/pressed\/(\d+)-(\d+)-(\d+)$/
@@ -202,6 +209,36 @@ class WDWD
     server.listen
   end # run_server
 
+  def ips
+    case os
+    when "windows"
+      `ipconfig`.scan(/IPv4 Address.*: (\d+\.\d+\.\d+\.\d+)/).map { |m| m[0] }
+    when "linux"
+      `hostname -I`.split(" ")
+    when "macos"
+      `ipconfig getifaddr en0`.split("\n")
+    else
+      raise "Unknown OS #{os}"
+    end
+  end
+
+  def create_qr_image(ip, port)
+    `qrencode -o images/qr-#{ip}-#{port}.png -s 10 -l H http://#{ip}:#{port}/qr/#{port}`
+  end
+
+  def qr_page(ip)
+    create_qr_image(ip, @port)
+    title = "QR Code for #{ip} / #{port}"
+    renderer = Renderer.new
+    renderer.render("qr_code_html.j2", {title: title, image: "/images/qr-#{ip}-#{title}.png", ip: ip, port: @port})
+  end
+
+  def print_qr_urls
+    ips.each do |ip|
+      puts "http://#{ip}:#{port}/qr/#{port}"
+    end
+  end
+
   def run
     run_server(8080)
   end
@@ -211,8 +248,11 @@ def main
   rows = ARGV[0].to_i
   columns = ARGV[1].to_i
   file = ARGV[2]
+  # TODO handle optional port numbers
+  port = 5657
 
-  wdwd = WDWD.new(rows, columns, file)
+  wdwd = WDWD.new(rows, columns, file, port)
+  wdwd.print_qr_urls
   wdwd.run
 end
 
