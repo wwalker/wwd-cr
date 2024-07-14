@@ -257,7 +257,7 @@ def main
   columns = ARGV[1].to_i
   file = ARGV[2]
   # TODO handle optional port numbers
-  port = 5657
+  port = ARGV.size > 3 ? ARGV[3].to_i : 5657
 
   wdwd = WDWD.new(rows, columns, file, port)
   wdwd.print_qr_urls
