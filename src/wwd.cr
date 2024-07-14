@@ -145,6 +145,7 @@ class WDWD
       context.response.status = HTTP::Status::FOUND
       context.response.headers["Location"] = "/page/#{page}"
     when "shortcut"
+      STDERR.puts "Running 'cmd /c #{cl.args}'\n\n"
       Process.new("cmd", ["/c", cl.args])
       context.response.status = HTTP::Status::FOUND
       context.response.headers["Location"] = "/page/#{page}"
