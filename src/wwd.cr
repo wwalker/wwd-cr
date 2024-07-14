@@ -242,6 +242,9 @@ class WDWD
     p ips
     ips.each do |ip|
       STDERR.puts "http://#{ip}:#{@port}/qr/#{ip}:#{@port}"
+      if @os == "windows"
+        Process.new("cmd", ["/c", "start", "http://#{ip}:#{@port}/qr/#{ip}:#{@port}"])
+      end
     end
   end
 
