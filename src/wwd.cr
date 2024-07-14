@@ -124,6 +124,40 @@ class WDWD
     renderer.render(DECK_TMPL, {page: page, title: title, table_content: row_text, table_width: "1200px"})
   end # render_page
 
+  def shortcut(args)
+    case @os
+    when "windows"
+      Process.new("cmd", ["/c", "start", args])
+    when "linux"
+      Process.new("xdg-open", [args])
+    when "macos"
+      Process.new("open", [args])
+    else
+      raise "Unknown OS #{@os}"
+    end
+  end
+
+  def send_keys(key)
+    case @os
+    when "windows"
+      File.write("oneshot.ahk", "Send " + cl.args)
+      Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
+    when "linux"
+      Process.new("xdotool", ["key", cl.args])
+    when "macos"
+      Process.new("xdotool", ["key", cl.args])
+    else
+      raise "Unknown OS #{@os}"
+    end
+    Process.new("xdotool", ["key", key])
+  end
+  
+  def cmd(args)
+    args = cl.args.split("|")
+    command = args.shift
+    Process.new(command, args)
+  end
+
   def handle_button_press(page, row, column, context)
     key = "#{page}-#{row}-#{column}"
     cl = button_config(page, row, column)
@@ -143,20 +177,14 @@ class WDWD
       context.response.status = HTTP::Status::FOUND
       context.response.headers["Location"] = "/page/#{page}"
     when "shortcut"
-      STDERR.puts "Running 'cmd /c #{cl.args}'\n\n"
-      Process.new("cmd", ["/c", cl.args])
+      shortcut(cl.args)
       context.response.status = HTTP::Status::FOUND
       context.response.headers["Location"] = "/page/#{page}"
     when "keys"
-      File.write("oneshot.ahk", "Send " + cl.args)
-      Process.new("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe", ["oneshot.ahk"])
-      # Process.new("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe", ["oneshot.ahk"])
       context.response.status = HTTP::Status::FOUND
       context.response.headers["Location"] = "/page/#{page}"
     when "cmd"
-      args = cl.args.split("|")
-      command = args.shift
-      Process.new(command, args)
+      cmd(cl.args)
       context.response.status = HTTP::Status::FOUND
       context.response.headers["Location"] = "/page/#{page}"
     else
