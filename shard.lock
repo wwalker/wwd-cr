@@ -4,3 +4,7 @@ shards:
     git: https://github.com/straight-shoota/crinja.git
     version: 0.8.1
 
+  qr-code:
+    git: https://github.com/spider-gazelle/qr-code.git
+    version: 1.0.3
+

@@ -1,5 +1,6 @@
 require "http/server"
 require "crinja"
+require "qr-code"
 
 class ConfigLine
   getter key : String
@@ -42,7 +43,7 @@ class WDWD
   @columns : Int32
   @config_file : String
   @config_lines : Hash(String, ConfigLine)
-  getter port : Int32
+  @port : Int32
   getter os : String
 
   def initialize(@rows, @columns, @config_file, @port = 5657)
@@ -70,10 +71,10 @@ class WDWD
   def read_config(file)
     config_lines = Hash(String, ConfigLine).new
     lines = File.read_lines(file)
-    STDERR.puts "Reading config from #{file}\n\n"
-    STDERR.puts "Lines: #{lines}\n\n"
+    # STDERR.puts "Reading config from #{file}\n\n"
+    # STDERR.puts "Lines: #{lines}\n\n"
     noncomments = lines.reject { |l| l =~ /^#/ }
-    STDERR.puts "Noncomments: #{noncomments}\n\n"
+    # STDERR.puts "Noncomments: #{noncomments}\n\n"
     noncomments.each { |line| cl = ConfigLine.new(line); config_lines[cl.key] = cl }
     # config_lines.nil? ? raise "No config lines found in #{file}" : config_lines
     config_lines
@@ -185,6 +186,7 @@ class WDWD
           STDERR.puts "rendering page #{$1}\n\n"
           context.response.print render_page(page, "Page: #{page}")
         when /^\/qr\/(.*)$/
+          STDERR.puts "QR code for <#{$1}>\n\n"
           context.response.print qr_page($1)
           context.response.status = HTTP::Status::OK
         when /^\/images\/(.*)$/
@@ -210,37 +212,41 @@ class WDWD
   end # run_server
 
   def ips
-    case os
+    case @os
     when "windows"
-      `ipconfig`.scan(/IPv4 Address.*: (\d+\.\d+\.\d+\.\d+)/).map { |m| m[0] }
+      `ipconfig`.scan(/IPv4 Address.*: (\d+\.\d+\.\d+\.\d+)/).map { |m| m[0] }.reject{ |ip| (ip =~ /\d+\.\d+\.\d+\.\d+/).nil? }
     when "linux"
-      `hostname -I`.split(" ")
+      `hostname -I`.split(" ").reject{ |ip| (ip =~ /\d+\.\d+\.\d+\.\d+/).nil? }
     when "macos"
-      `ipconfig getifaddr en0`.split("\n")
+      `ipconfig getifaddr en0`.split("\n").reject{ |ip| (ip =~ /\d+\.\d+\.\d+\.\d+/).nil? }
     else
-      raise "Unknown OS #{os}"
+      raise "Unknown OS #{@os}"
     end
   end
 
-  def create_qr_image(ip, port)
-    `qrencode -o images/qr-#{ip}-#{port}.png -s 10 -l H http://#{ip}:#{port}/qr/#{port}`
-  end
-
   def qr_page(ip)
-    create_qr_image(ip, @port)
-    title = "QR Code for #{ip} / #{port}"
+    ip =~ /(\d+\.\d+\.\d+\.\d+)/ || raise "Invalid IP address #{ip}"
+    ip = $1
+    title = "QR Code for #{ip} / #{@port}"
+    image_name = "images/qr-#{ip}:#{@port}.svg"
+    image_url = "http://localhost:#{@port}/#{image_name}"
+    qr_code_text = "http://#{ip}:#{@port}/"
+
+    File.write("#{image_name}", QRCode.new(qr_code_text).as_svg)
+
     renderer = Renderer.new
-    renderer.render("qr_code_html.j2", {title: title, image: "/images/qr-#{ip}-#{title}.png", ip: ip, port: @port})
+    renderer.render("qr_code_html.j2", {title: title, image_url: image_url, target_url: qr_code_text, ip: ip, port: @port})
   end
 
   def print_qr_urls
+    p ips
     ips.each do |ip|
-      puts "http://#{ip}:#{port}/qr/#{port}"
+      STDERR.puts "http://#{ip}:#{@port}/qr/#{ip}:#{@port}"
     end
   end
 
   def run
-    run_server(8080)
+    run_server(@port)
   end
 end # class WDWD
 
