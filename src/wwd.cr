@@ -214,7 +214,7 @@ class WDWD
   def ips
     case @os
     when "windows"
-      `ipconfig`.scan(/IPv4 Address.*: (\d+\.\d+\.\d+\.\d+)/).reject { |m| (m[0] =~ /(\d+\.\d+\.\d+\.\d+)/).nil?}.map { |m| m[0] }
+      `ipconfig`.scan(/IPv4 Address.*: (\d+\.\d+\.\d+\.\d+)/).map { |m| m[1] }
     when "linux"
       `hostname -I`.split(" ").reject{ |ip| (ip =~ /\d+\.\d+\.\d+\.\d+/).nil? }
     when "macos"
