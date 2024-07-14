@@ -29,12 +29,10 @@ end     # class ConfigLine
 class Renderer
   def initialize
     @env = Crinja.new
-    @env.loader = Crinja::Loader::FileSystemLoader.new("templates/")
   end # initialize
 
   def render(template, context)
-    template = @env.get_template(template)
-    template.render(context)
+    @env.from_string(template).render(context)
   end # render
 end
 
@@ -118,12 +116,12 @@ class WDWD
         context = {key: key, w: w, h: h,
                    image_width: image_width, image_height: image_height,
                    label: bc.label, action: bc.action, image: bc.image, url: bc.url}
-        row_content += renderer.render("td_html.j2", context)
+        row_content += renderer.render(TD_TMPL, context)
       end
-      row_text += renderer.render("tr_html.j2", {row_content: row_content, tr_height: tr_height})
+      row_text += renderer.render(TR_TMPL, {row_content: row_content, tr_height: tr_height})
     end
 
-    renderer.render("deck_html.j2", {page: page, title: title, table_content: row_text, table_width: "1200px"})
+    renderer.render(DECK_TMPL, {page: page, title: title, table_content: row_text, table_width: "1200px"})
   end # render_page
 
   def handle_button_press(page, row, column, context)
@@ -230,13 +228,13 @@ class WDWD
     ip = $1
     title = "QR Code for #{ip} / #{@port}"
     image_name = "images/qr-#{ip}:#{@port}.svg"
-    image_url = "http://localhost:#{@port}/#{image_name}"
+    image_url = "#{image_name}"
     qr_code_text = "http://#{ip}:#{@port}/"
 
     File.write("#{image_name}", QRCode.new(qr_code_text).as_svg)
 
     renderer = Renderer.new
-    renderer.render("qr_code_html.j2", {title: title, image_url: image_url, target_url: qr_code_text, ip: ip, port: @port})
+    renderer.render(QR_TMPL, {title: title, image_url: image_url, target_url: qr_code_text, ip: ip, port: @port})
   end
 
   def print_qr_urls
@@ -268,6 +266,12 @@ end
 
 INDEX_HTML = {{ read_file("#{__DIR__}/../files/index.html") }}
 START_HTML = {{ read_file("#{__DIR__}/../files/start.html") }}
+
+DECK_TMPL = {{ read_file("#{__DIR__}/../templates/deck_html.j2") }}
+TR_TMPL = {{ read_file("#{__DIR__}/../templates/tr_html.j2") }}
+TD_TMPL = {{ read_file("#{__DIR__}/../templates/td_html.j2") }}
+QR_TMPL = {{ read_file("#{__DIR__}/../templates/qr_code_html.j2") }}
+
 STDERR.puts "Running on Crystal #{Crystal::VERSION} #{Crystal::HOST_TRIPLE}\n\n"
 
 main()
